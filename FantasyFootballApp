@@ -34,22 +34,26 @@ public class FantasyFootballApp {
         availablePlayers.add(new Player("Phan Binh", "Striker", 14));
         JTextField teamNameField = new JTextField(15);
         JButton createTeamButton = new JButton("Create Team");
-        JComboBox<String> playerDropdown = new JComboBox<>(availablePlayers.stream().map(p -> p.name).toArray(String[]::new));
         JButton buyPlayerButton = new JButton("Buy Player");
         JButton assignCoachButton = new JButton("Assign Coach");
-        JTextField goalsField = new JTextField(10);
         JButton updateGoalsButton = new JButton("Update Goals");
         JButton showTopScorerButton = new JButton("Show Top Scorer");
+        JButton showMyPlayersButton = new JButton("Show My Players");
+        JComboBox<String> playerDropdown = new JComboBox<>(availablePlayers.stream().map(p -> p.name).toArray(String[]::new));
+
         standingsArea = new JTextArea(30, 50);
         standingsArea.setEditable(false);
         standingsArea.setFont(new Font("Monospaced", Font.BOLD, 12));
         JScrollPane scrollPane = new JScrollPane(standingsArea);
 
+        playerInfoArea = new JTextArea(5, 50);
+        playerInfoArea.setEditable(false);
+        JScrollPane playerInfoScroll = new JScrollPane(playerInfoArea);
+
         createTeamButton.addActionListener(e -> {
-            String name = teamNameField.getText();
-            if (!name.isEmpty()) {
+            String name = JOptionPane.showInputDialog(frame, "Enter Team Name:");
+            if (name != null && !name.trim().isEmpty()) {
                 fantasyTeams.add(new FantasyTeam(name, 500));
-                teamNameField.setText("");
                 updateStandings();
             }
         });
@@ -57,56 +61,97 @@ public class FantasyFootballApp {
         buyPlayerButton.addActionListener(e -> {
             String playerName = (String) playerDropdown.getSelectedItem();
             Player player = availablePlayers.stream().filter(p -> p.name.equals(playerName)).findFirst().orElse(null);
+
             if (player != null && !fantasyTeams.isEmpty() && !player.position.equals("Head Coach")) {
-                fantasyTeams.get(fantasyTeams.size() - 1).addPlayer(player);
-                updateStandings();
+                int confirm = JOptionPane.showConfirmDialog(frame,
+                        "Do you want to buy " + playerName + "?",
+                        "Confirm Purchase", JOptionPane.YES_NO_OPTION);
+
+                if (confirm == JOptionPane.YES_OPTION) {
+                    fantasyTeams.get(fantasyTeams.size() - 1).addPlayer(player);
+                    updateStandings();
+                }
             }
         });
 
         assignCoachButton.addActionListener(e -> {
             String playerName = (String) playerDropdown.getSelectedItem();
             Player coach = availablePlayers.stream().filter(p -> p.name.equals(playerName) && p.position.equals("Head Coach")).findFirst().orElse(null);
-            if (coach != null && !fantasyTeams.isEmpty()) {
-                fantasyTeams.get(fantasyTeams.size() - 1).setCoach(coach);
-                updateStandings();
-            }
-        });
-        updateGoalsButton.addActionListener(e -> {
-            String playerName = (String) playerDropdown.getSelectedItem();
-            int goals;
-            try {
-                goals = Integer.parseInt(goalsField.getText());
-            } catch (NumberFormatException ex) {
-                JOptionPane.showMessageDialog(frame, "Please enter a valid number for goals.");
-                return;
-            }
 
-            for (FantasyTeam team : fantasyTeams) {
-                for (Player player : team.players) {
-                    if (player.name.equals(playerName)) {
-                        player.updateGoals(goals);
-                    }
+            if (coach != null && !fantasyTeams.isEmpty()) {
+                int confirm = JOptionPane.showConfirmDialog(frame,
+                        "Do you want to assign " + playerName + " as the coach?",
+                        "Assign Coach", JOptionPane.YES_NO_OPTION);
+
+                if (confirm == JOptionPane.YES_OPTION) {
+                    fantasyTeams.get(fantasyTeams.size() - 1).setCoach(coach);
+                    updateStandings();
                 }
             }
         });
-        showTopScorerButton.addActionListener(e -> {
-            Player topScorer = availablePlayers.stream().max((p1, p2) -> Integer.compare(p1.goals, p2.goals)).orElse(null);
-            if (topScorer != null) {
-                JOptionPane.showMessageDialog(frame, "Top Scorer: " + topScorer.name + " with " + topScorer.goals + " goals.");
+
+        updateGoalsButton.addActionListener(e -> {
+            String playerName = (String) playerDropdown.getSelectedItem();
+
+            String goalsInput = JOptionPane.showInputDialog(frame,
+                    "Enter number of goals for " + playerName + ":");
+
+            if (goalsInput != null) {
+                try {
+                    int goals = Integer.parseInt(goalsInput);
+                    for (FantasyTeam team : fantasyTeams) {
+                        for (Player player : team.players) {
+                            if (player.name.equals(playerName)) {
+                                player.updateGoals(goals);
+                            }
+                        }
+                    }
+                    updateStandings();
+                } catch (NumberFormatException ex) {
+                    JOptionPane.showMessageDialog(frame, "Please enter a valid number!", "Error", JOptionPane.ERROR_MESSAGE);
+                }
             }
         });
 
+        showTopScorerButton.addActionListener(e -> {
+            Player topScorer = availablePlayers.stream()
+                    .max((p1, p2) -> Integer.compare(p1.goals, p2.goals))
+                    .orElse(null);
+
+            if (topScorer != null) {
+                JOptionPane.showMessageDialog(frame,
+                        "Top Scorer: " + topScorer.name + " with " + topScorer.goals + " goals.");
+            }
+        });
+        showMyPlayersButton.addActionListener(e -> {
+            if (fantasyTeams.isEmpty()) {
+                JOptionPane.showMessageDialog(frame, "No team has been created yet!", "Error", JOptionPane.ERROR_MESSAGE);
+                return;
+            }
+
+            FantasyTeam latestTeam = fantasyTeams.get(fantasyTeams.size() - 1);
+            StringBuilder playerList = new StringBuilder("Players in " + latestTeam.name + ":\n");
+
+            if (latestTeam.players.isEmpty()) {
+                playerList.append("No players have been bought yet!");
+            } else {
+                for (Player p : latestTeam.players) {
+                    playerList.append("- ").append(p.name).append(" (").append(p.position).append(")\n");
+                }
+            }
+
+            JOptionPane.showMessageDialog(frame, playerList.toString(), "My Players", JOptionPane.INFORMATION_MESSAGE);
+        });
         frame.add(showTopScorerButton);
         frame.add(new JLabel("Team Name:"));
-        frame.add(teamNameField);
         frame.add(createTeamButton);
         frame.add(new JLabel("Select Player:"));
         frame.add(playerDropdown);
         frame.add(buyPlayerButton);
         frame.add(assignCoachButton);
         frame.add(new JLabel("Update Goals:"));
-        frame.add(goalsField);
         frame.add(updateGoalsButton);
+        frame.add(showMyPlayersButton);
         frame.add(scrollPane);
         frame.setVisible(true);
     }
