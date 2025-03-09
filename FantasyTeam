@@ -1,0 +1,67 @@
+package FantasyFootballManager;
+
+import javax.swing.*;
+import java.awt.*;
+import java.awt.event.ActionEvent;
+import java.awt.event.ActionListener;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+
+public class FantasyTeam {
+
+    String name;
+    int budget;
+    List<Player> players = new ArrayList<>();
+    Player coach;
+
+    public FantasyTeam(String name, int budget) {
+        this.name = name;
+        this.budget = budget;
+    }
+
+    public boolean addPlayer(Player player) {
+        if (!player.position.equals("Head Coach") && budget >= player.price) {
+            players.add(player);
+            budget -= player.price;
+            return true;
+        }
+        return false;
+    }
+
+    public void setCoach(Player coach) {
+        if (coach.position.equals("Head Coach")) {
+            this.coach = coach;
+        }
+    }
+
+    public void updatePlayerPoints(String playerName, int newPoints) {
+        for (Player player : players) {
+            if (player.name.equals(playerName)) {
+                player.updatePoints(newPoints);
+            }
+        }
+    }
+
+    public int getTotalPoints() {
+        return players.stream().mapToInt(p -> p.points).sum();
+    }
+
+    @Override
+    public String toString() {
+        StringBuilder sb = new StringBuilder();
+        sb.append("\n*** ").append(name).append(" ***\n");
+        if (coach != null) {
+            sb.append("Coach: ").append(coach.name).append("\n");
+        }
+        sb.append("Players:\n");
+        for (Player player : players) {
+            sb.append(player.name).append(" (" + player.position + ") - Price: " + player.price + "\n");
+        }
+        return sb.toString();
+    }
+     public Player getTopScorer() {
+        return players.stream().max((p1, p2) -> Integer.compare(p1.goals, p2.goals)).orElse(null);
+    }
+}
