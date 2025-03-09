@@ -1,0 +1,130 @@
+package FantasyFootballManager;
+
+import javax.swing.*;
+import java.awt.*;
+import java.awt.event.ActionEvent;
+import java.awt.event.ActionListener;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+
+public class FantasyFootballApp {
+
+    private List<Player> availablePlayers = new ArrayList<>();
+    private List<FantasyTeam> fantasyTeams = new ArrayList<>();
+    private JFrame frame;
+    private JTextArea standingsArea;
+    private JTextArea playerInfoArea;
+
+    public FantasyFootballApp() {
+        frame = new JFrame("Fantasy Football Manager");
+        frame.setSize(800, 700);
+        frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
+        frame.setLayout(new FlowLayout());
+
+        availablePlayers.add(new Player("Van Anh", "Forward", 10));
+        availablePlayers.add(new Player("Van Duoc", "Forward", 20));
+        availablePlayers.add(new Player("Thanh Long", "Midfielder", 14));
+        availablePlayers.add(new Player("Ngoc Tu", "Defender", 11));
+        availablePlayers.add(new Player("Trong Tin", "Goalkeeper", 10));
+        availablePlayers.add(new Player("Cong Minh", "Head Coach", 15));
+        availablePlayers.add(new Player("Tuan Phong", "Defensive Midfielder", 10));
+        availablePlayers.add(new Player("Minh Duc", "Winger", 11));
+        availablePlayers.add(new Player("Phan Binh", "Striker", 14));
+        JTextField teamNameField = new JTextField(15);
+        JButton createTeamButton = new JButton("Create Team");
+        JComboBox<String> playerDropdown = new JComboBox<>(availablePlayers.stream().map(p -> p.name).toArray(String[]::new));
+        JButton buyPlayerButton = new JButton("Buy Player");
+        JButton assignCoachButton = new JButton("Assign Coach");
+        JTextField goalsField = new JTextField(10);
+        JButton updateGoalsButton = new JButton("Update Goals");
+        JButton showTopScorerButton = new JButton("Show Top Scorer");
+        standingsArea = new JTextArea(30, 50);
+        standingsArea.setEditable(false);
+        standingsArea.setFont(new Font("Monospaced", Font.BOLD, 12));
+        JScrollPane scrollPane = new JScrollPane(standingsArea);
+
+        createTeamButton.addActionListener(e -> {
+            String name = teamNameField.getText();
+            if (!name.isEmpty()) {
+                fantasyTeams.add(new FantasyTeam(name, 500));
+                teamNameField.setText("");
+                updateStandings();
+            }
+        });
+
+        buyPlayerButton.addActionListener(e -> {
+            String playerName = (String) playerDropdown.getSelectedItem();
+            Player player = availablePlayers.stream().filter(p -> p.name.equals(playerName)).findFirst().orElse(null);
+            if (player != null && !fantasyTeams.isEmpty() && !player.position.equals("Head Coach")) {
+                fantasyTeams.get(fantasyTeams.size() - 1).addPlayer(player);
+                updateStandings();
+            }
+        });
+
+        assignCoachButton.addActionListener(e -> {
+            String playerName = (String) playerDropdown.getSelectedItem();
+            Player coach = availablePlayers.stream().filter(p -> p.name.equals(playerName) && p.position.equals("Head Coach")).findFirst().orElse(null);
+            if (coach != null && !fantasyTeams.isEmpty()) {
+                fantasyTeams.get(fantasyTeams.size() - 1).setCoach(coach);
+                updateStandings();
+            }
+        });
+        updateGoalsButton.addActionListener(e -> {
+            String playerName = (String) playerDropdown.getSelectedItem();
+            int goals;
+            try {
+                goals = Integer.parseInt(goalsField.getText());
+            } catch (NumberFormatException ex) {
+                JOptionPane.showMessageDialog(frame, "Please enter a valid number for goals.");
+                return;
+            }
+
+            for (FantasyTeam team : fantasyTeams) {
+                for (Player player : team.players) {
+                    if (player.name.equals(playerName)) {
+                        player.updateGoals(goals);
+                    }
+                }
+            }
+        });
+        showTopScorerButton.addActionListener(e -> {
+            Player topScorer = availablePlayers.stream().max((p1, p2) -> Integer.compare(p1.goals, p2.goals)).orElse(null);
+            if (topScorer != null) {
+                JOptionPane.showMessageDialog(frame, "Top Scorer: " + topScorer.name + " with " + topScorer.goals + " goals.");
+            }
+        });
+
+        frame.add(showTopScorerButton);
+        frame.add(new JLabel("Team Name:"));
+        frame.add(teamNameField);
+        frame.add(createTeamButton);
+        frame.add(new JLabel("Select Player:"));
+        frame.add(playerDropdown);
+        frame.add(buyPlayerButton);
+        frame.add(assignCoachButton);
+        frame.add(new JLabel("Update Goals:"));
+        frame.add(goalsField);
+        frame.add(updateGoalsButton);
+        frame.add(scrollPane);
+        frame.setVisible(true);
+    }
+
+    private void updateStandings() {
+        StringBuilder sb = new StringBuilder();
+        for (FantasyTeam team : fantasyTeams) {
+            sb.append(team.toString()).append("\n\n");
+            for (Player player : team.players) {
+                sb.append(" - ").append(player.name).append(" (Goals: ").append(player.goals).append(")\n");
+            }
+        }
+
+        standingsArea.setText(sb.toString());
+        playerInfoArea.setText(sb.toString());
+    }
+
+    public static void main(String[] args) {
+        new FantasyFootballApp();
+    }
+}
